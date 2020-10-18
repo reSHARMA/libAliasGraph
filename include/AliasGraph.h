@@ -1,6 +1,7 @@
 #ifndef ALIASGRAPH_H
 #define ALIASGRAPH_H
 
+#include "iostream"
 #include "map"
 #include "set"
 
@@ -16,7 +17,9 @@ class AliasGraph {
     void insert(AliasNode*, AliasNode*, int, int);
     bool insert(AliasNode*, AliasNode*);
     std::set<AliasNode*> getPointee(AliasNode*);
-    void print();
+    template <class Node>
+    friend std::ostream& operator<<(std::ostream& OS,
+                                    const AliasGraph<Node>& G);
 };
 
 /** Implementation ---- **/
@@ -75,10 +78,16 @@ std::set<AliasNode*> AliasGraph<AliasNode>::getPointee(AliasNode* Node) {
     return PointeeSet;
 }
 
-/// print - Prints the graph node, TODO: make it working
 template <class AliasNode>
-void AliasGraph<AliasNode>::print() {
-    return;
+std::ostream& operator<<(std::ostream& OS, const AliasGraph<AliasNode> &G){
+    for(auto X : G.Graph){
+        OS << *(X.first) << " -> {";
+        for(auto Y : X.second){
+            OS << *(Y) << ", ";
+        }
+        OS << "}\n";
+    }
+    return OS;
 }
 
 }  // namespace AliasGraphUtil
