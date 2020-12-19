@@ -4,6 +4,7 @@
 #include "iostream"
 #include "map"
 #include "set"
+#include "vector"
 
 namespace AliasGraphUtil {
 template <class AliasNode>
@@ -17,6 +18,7 @@ class AliasGraph {
     void insert(AliasNode*, AliasNode*, int, int);
     bool insert(AliasNode*, AliasNode*);
     std::set<AliasNode*> getPointee(AliasNode*);
+    void merge(std::vector<AliasGraph<AliasNode>> Graphs);
     template <class Node>
     friend std::ostream& operator<<(std::ostream& OS,
                                     const AliasGraph<Node>& G);
@@ -28,7 +30,8 @@ class AliasGraph {
 template <class AliasNode>
 bool AliasGraph<AliasNode>::hasEdgeBetween(AliasNode* Src, AliasNode* Dest) {
     if (Graph.find(Src) == Graph.end()) return false;
-    return this->getPointee(Src).find(Dest) != this->getPointee(Src).end();
+    auto Pointee = this->getPointee(Src);
+    return (Pointee.find(Dest) != Pointee.end());
 }
 
 /// insert - Inserts an edge between \p Src and \p Dest based on \p Left and \p
@@ -79,15 +82,31 @@ std::set<AliasNode*> AliasGraph<AliasNode>::getPointee(AliasNode* Node) {
 }
 
 template <class AliasNode>
-std::ostream& operator<<(std::ostream& OS, const AliasGraph<AliasNode> &G){
-    for(auto X : G.Graph){
+std::ostream& operator<<(std::ostream& OS, const AliasGraph<AliasNode>& G) {
+    for (auto X : G.Graph) {
         OS << *(X.first) << " -> {";
-        for(auto Y : X.second){
+        for (auto Y : X.second) {
             OS << *(Y) << ", ";
         }
         OS << "}\n";
     }
     return OS;
+}
+
+/// merge - Merges the AliasGraphs from \p Graphs
+template <class AliasNode>
+void AliasGraph<AliasNode>::merge(
+    std::vector<AliasGraph<AliasNode>> AliasMaps) {
+    for (auto AliasMap : AliasMaps) {
+        for (auto Node : AliasMap.Graph) {
+            if (this->Graph.find(Node.first) == this->Graph.end()) {
+                this->Graph[Node.first] = Node.second;
+            } else {
+                this->Graph[Node.first].insert(Node.second.begin(),
+                                               Node.second.end());
+            }
+        }
+    }
 }
 
 }  // namespace AliasGraphUtil
