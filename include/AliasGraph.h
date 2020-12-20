@@ -7,19 +7,26 @@
 #include "vector"
 
 namespace AliasGraphUtil {
-template <class AliasNode>
 
+template <typename AliasNode>
 class AliasGraph {
    private:
     std::map<AliasNode*, std::set<AliasNode*>> Graph;
 
    public:
+    using GraphType = std::map<AliasNode*, std::set<AliasNode*>>;
+    using iterator = typename GraphType::iterator;
+
     bool hasEdgeBetween(AliasNode*, AliasNode*);
     void insert(AliasNode*, AliasNode*, int, int);
     bool insert(AliasNode*, AliasNode*);
+    void insert(AliasNode*, std::set<AliasNode*>);
     std::set<AliasNode*> getPointee(AliasNode*);
     void merge(std::vector<AliasGraph<AliasNode>> Graphs);
-    template <class Node>
+    void erase(AliasNode*);
+    iterator begin() { return Graph.begin(); }
+    iterator end() { return Graph.end(); }
+    template <typename Node>
     friend std::ostream& operator<<(std::ostream& OS,
                                     const AliasGraph<Node>& G);
 };
@@ -27,7 +34,7 @@ class AliasGraph {
 /** Implementation ---- **/
 
 /// hasEdgeBetween - Returns true if there is a edge between \p Src and \p Dest
-template <class AliasNode>
+template <typename AliasNode>
 bool AliasGraph<AliasNode>::hasEdgeBetween(AliasNode* Src, AliasNode* Dest) {
     if (Graph.find(Src) == Graph.end()) return false;
     auto Pointee = this->getPointee(Src);
@@ -38,7 +45,7 @@ bool AliasGraph<AliasNode>::hasEdgeBetween(AliasNode* Src, AliasNode* Dest) {
 /// Right. \p Left and \p Right denotes the level of redirection in LHS and RHS
 /// respectively example a = b is denoted by (1, 1) and a = &b by (1, 0).
 /// Only a = b, a = &b, a = *b and *a = b supported right now, TODO support more
-template <class AliasNode>
+template <typename AliasNode>
 void AliasGraph<AliasNode>::insert(AliasNode* Src, AliasNode* Dest, int Left,
                                    int Right) {
     if (Left == 1 && Right == 1) {
@@ -64,16 +71,27 @@ void AliasGraph<AliasNode>::insert(AliasNode* Src, AliasNode* Dest, int Left,
 
 /// insert - Inserts an direct edge between \p Src andp Dest. Returns false if
 /// the edge already existed
-template <class AliasNode>
+template <typename AliasNode>
 bool AliasGraph<AliasNode>::insert(AliasNode* Src, AliasNode* Dest) {
     if (this->hasEdgeBetween(Src, Dest)) return false;
     this->Graph[Src].insert(Dest);
     return true;
 }
 
+/// insert - Directly inserts pointee set \p Pointee for node \p Node
+template <typename AliasNode>
+void AliasGraph<AliasNode>::insert(AliasNode* Node,
+                                   std::set<AliasNode*> Pointee) {
+    if (this->Graph.find(Node) == this->Graph.end()) {
+        this->Graph[Node] = Pointee;
+    } else {
+        this->Graph[Node].insert(Pointee.begin(), Pointee.end());
+    }
+}
+
 /// getPointee - Returns a set of pointee for a given \p Node. Retuns an empty
 /// set if \p Node does not point to anyone
-template <class AliasNode>
+template <typename AliasNode>
 std::set<AliasNode*> AliasGraph<AliasNode>::getPointee(AliasNode* Node) {
     std::set<AliasNode*> PointeeSet;
     if (this->Graph.find(Node) != this->Graph.end())
@@ -81,7 +99,7 @@ std::set<AliasNode*> AliasGraph<AliasNode>::getPointee(AliasNode* Node) {
     return PointeeSet;
 }
 
-template <class AliasNode>
+template <typename AliasNode>
 std::ostream& operator<<(std::ostream& OS, const AliasGraph<AliasNode>& G) {
     for (auto X : G.Graph) {
         OS << *(X.first) << " -> {";
@@ -93,8 +111,14 @@ std::ostream& operator<<(std::ostream& OS, const AliasGraph<AliasNode>& G) {
     return OS;
 }
 
+/// erase - Erases the node \p Node
+template <typename AliasNode>
+void AliasGraph<AliasNode>::erase(AliasNode* Node) {
+    this->Graph[Node].clear();
+}
+
 /// merge - Merges the AliasGraphs from \p Graphs
-template <class AliasNode>
+template <typename AliasNode>
 void AliasGraph<AliasNode>::merge(
     std::vector<AliasGraph<AliasNode>> AliasMaps) {
     for (auto AliasMap : AliasMaps) {
