@@ -22,10 +22,13 @@ class AliasGraph {
     bool insert(AliasNode*, AliasNode*);
     void insert(AliasNode*, std::set<AliasNode*>);
     std::set<AliasNode*> getPointee(AliasNode*);
+    AliasNode* getUniquePointee(AliasNode*);
     void merge(std::vector<AliasGraph<AliasNode>> Graphs);
     void erase(AliasNode*);
     iterator begin() { return Graph.begin(); }
     iterator end() { return Graph.end(); }
+    bool operator==(const AliasGraph<AliasNode>& TheAliasGarph) const;
+    bool operator<(const AliasGraph<AliasNode>& TheAliasGarph) const;
     template <typename Node>
     friend std::ostream& operator<<(std::ostream& OS,
                                     const AliasGraph<Node>& G);
@@ -89,7 +92,7 @@ void AliasGraph<AliasNode>::insert(AliasNode* Node,
     }
 }
 
-/// getPointee - Returns a set of pointee for a given \p Node. Retuns an empty
+/// getPointee - Returns a set of pointee for a given \p Node. Returns an empty
 /// set if \p Node does not point to anyone
 template <typename AliasNode>
 std::set<AliasNode*> AliasGraph<AliasNode>::getPointee(AliasNode* Node) {
@@ -97,6 +100,31 @@ std::set<AliasNode*> AliasGraph<AliasNode>::getPointee(AliasNode* Node) {
     if (this->Graph.find(Node) != this->Graph.end())
         PointeeSet = this->Graph[Node];
     return PointeeSet;
+}
+
+/// getUniquePointee - Returns the unique pointee for a given \p Node. Returns
+/// null set if \p Node does not point to anyone or points to more than one node
+template <typename AliasNode>
+AliasNode* AliasGraph<AliasNode>::getUniquePointee(AliasNode* Node) {
+    AliasNode* Pointee = nullptr;
+    if (this->Graph.find(Node) != this->Graph.end())
+        if (this->Graph[Node].size() == 1)
+            Pointee = *((this->Graph[Node]).begin());
+    return Pointee;
+}
+
+template <typename AliasNode>
+bool AliasGraph<AliasNode>::operator==(
+    const AliasGraph<AliasNode>& TheAliasGraph) const {
+    return this->Graph.size() == TheAliasGraph.Graph.size() &&
+           std::equal(this->Graph.begin(), this->Graph.end(),
+                      TheAliasGraph.Graph.begin());
+}
+
+template <typename AliasNode>
+bool AliasGraph<AliasNode>::operator<(
+    const AliasGraph<AliasNode>& TheAliasGraph) const {
+    return this->Graph.size() < TheAliasGraph.Graph.size();
 }
 
 template <typename AliasNode>
